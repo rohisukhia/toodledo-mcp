@@ -37,6 +37,13 @@ class ToodledoClient:
         """Make HTTP request to Toodledo API"""
         url = f"{self.settings.toodledo_api_base_url}{endpoint}"
 
+        # Toodledo API requires access_token as query parameter
+        access_token = self.token_manager.get_access_token()
+
+        if params is None:
+            params = {}
+        params["access_token"] = access_token
+
         try:
             if method.upper() == "GET":
                 response = self.session.get(url, params=params, timeout=30)
