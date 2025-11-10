@@ -46,12 +46,16 @@ poetry run python authorize.py <AUTHORIZATION_CODE>
 
 #### Getting Your Authorization Code:
 
-1. Visit this URL in your browser (or run the authorize script without a code to get the URL):
+1. Visit this URL in your browser:
    ```
-   https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer&scope=basic+tasks+folders&redirect_uri=http://localhost:8000/callback
+   https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer2&state=test_state_12345&scope=basic%20tasks%20write
    ```
 
-2. Click "Allow" to authorize the application
+   **Note:** This uses `toodledoMCPServer2` (NOT the old toodledoMCPServer) with the `write` scope for task creation.
+
+   **Important:** Do NOT add `redirect_uri` parameter - Toodledo uses a default redirect that works correctly.
+
+2. Click "Sign in" to authorize the application
 
 3. You'll be redirected to `http://localhost:8000/callback?code=XXXXXXXX&state=...`
 
@@ -62,36 +66,35 @@ poetry run python authorize.py <AUTHORIZATION_CODE>
    poetry run python authorize.py <PASTE_CODE_HERE>
    ```
 
-### Option 2: Manual Authorization
+### Option 2: Pre-filled Authorization
 
-If you prefer to handle the OAuth2 flow manually:
+The authorization URL above is already configured with the correct client ID and scopes. Just:
 
-1. Run the test script to get the authorization URL:
-   ```bash
-   poetry run python test-tools.py
-   ```
-
-2. Copy the authorization URL from the output
-
-3. Visit it in your browser and authorize
-
-4. Use the authorize script with the code you receive
+1. Copy and paste the URL into your browser
+2. Click "Allow"
+3. Copy the authorization code from the redirect
+4. Run the authorize script
 
 ## Verify Authorization
 
-Once authorized, test that everything works:
+Once authorized, verify everything works by using the health_check tool:
 
 ```bash
-poetry run python test-tools.py
+# Start the server
+poetry run python main.py
 ```
 
-You should see:
+Then in Claude Code (with the MCP configured), ask Claude:
 ```
-✓ Authorization tokens found
-✓ Retrieved X tasks...
-✓ Retrieved X folders...
-... etc
+"Check the health status of the Toodledo MCP server"
 ```
+
+Or use the get_reference_data tool:
+```
+"Show me my Toodledo reference data"
+```
+
+You should get back your account info and all available IDs.
 
 ## Using with Claude Code
 
@@ -173,36 +176,63 @@ This file contains:
 
 ## Available Tools
 
-### get_tasks()
+### Reference Tools
+
+#### get_reference_data()
+Get all structural data from Toodledo: folder IDs, context IDs, goal IDs, location IDs, status codes, and priority levels. **Use this first to understand what IDs to use in other tools.**
+
+Returns:
+- All user folders with IDs
+- All contexts (@Work, @Home, etc.) with IDs
+- All goals with IDs
+- All locations with IDs
+- Task status codes (0=incomplete, 1=complete, -1=all)
+- Priority levels (-1 to 3)
+- Available filters for get_tasks()
+
+#### health_check()
+Check if the MCP server is authorized and ready to use. Returns account info if authorized, or authorization instructions if not.
+
+#### authorize_mcp(code)
+Complete OAuth2 authorization with an authorization code (from the redirect URL).
+
+### Read Operations
+
+#### get_tasks()
 Retrieve your tasks with optional filtering
 
 Parameters:
 - `status` - "incomplete" (default), "complete", or "all"
+- `starred_only` - Boolean (optional) - only return starred tasks
 - `limit` - Maximum tasks to return (default 100)
 
-### get_folders()
+**Note:** For advanced filtering (by folder, context, goal, etc.), use the folder/context/goal/location IDs from get_reference_data() - see TODO.md for upcoming enhancements.
+
+#### get_folders()
 List all your task folders
 
-### get_contexts()
+#### get_contexts()
 List all your task contexts (@Work, @Home, etc.)
 
-### get_goals()
+#### get_goals()
 List all your goals
 
-### get_locations()
+#### get_locations()
 List all your locations
 
-### get_account_info()
+#### get_account_info()
 Get your Toodledo account information
 
-### create_task()
+### Write Operations
+
+#### create_task()
 Create a new task
 
 Parameters:
 - `title` - Task title (required)
-- `folder` - Folder ID (optional)
-- `context` - Context ID (optional)
-- `priority` - Priority level (optional)
+- `folder` - Folder ID (optional) - get ID from get_reference_data()
+- `context` - Context ID (optional) - get ID from get_reference_data()
+- `priority` - Priority level (optional) - use codes from get_reference_data()
 - `duedate` - Due date YYYY-MM-DD format (optional)
 - `note` - Task notes (optional)
 
