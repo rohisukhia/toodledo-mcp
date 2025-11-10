@@ -14,8 +14,13 @@ from config import get_settings
 from token_manager import TokenManager
 from toodledo_client import ToodledoClient
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging to file to avoid interfering with stdio/JSON-RPC protocol
+# Logging to stdout would corrupt the MCP protocol communication
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    filename="/tmp/toodledo_mcp.log"  # Log to file instead of stdout
+)
 logger = logging.getLogger(__name__)
 
 # Initialize components
@@ -340,12 +345,10 @@ def authorize_mcp(code: str) -> Dict[str, Any]:
 # Server Startup
 # ============================================================================
 
-
 if __name__ == "__main__":
     logger.info(f"Starting Toodledo MCP Server")
     logger.info(f"Log level: {settings.log_level}")
+    logger.info(f"Using FastMCP stdio transport for Claude Code compatibility")
 
-    # Run the FastMCP server
-    import asyncio
-
-    asyncio.run(mcp.run())
+    # Run FastMCP with stdio transport (more compatible with Claude Code)
+    mcp.run(transport="stdio")
