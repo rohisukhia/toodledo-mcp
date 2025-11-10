@@ -20,10 +20,16 @@ The Toodledo MCP server implementation has been debugged extensively. OAuth2 aut
 - 394 total tasks (22 in hot list - starred + next action)
 - Test script: `poetry run python test-tools.py`
 
-✅ **Direct Python Access**
-- Hot list script: `poetry run python get_hot_list.py`
-- Returns all 22 starred "next action" tasks
-- Fast and reliable
+✅ **All 9 MCP Tools Implemented**
+- get_tasks() - retrieve tasks with filtering
+- get_folders() - list all folders
+- get_contexts() - list contexts
+- get_account_info() - account details
+- create_task() - create new tasks
+- get_goals() - list goals
+- get_locations() - list locations
+- health_check() - server status
+- authorize_mcp() - OAuth flow
 
 ## What Doesn't Work - The Core Problem
 
@@ -106,17 +112,18 @@ File an issue with FastMCP project about missing `initialize` handler. But this 
 ```
 toodledo-mcp/
 ├── main.py              # MCP server (needs rewrite with native SDK)
-├── get_hot_list.py      # Working hot list script (keep as fallback)
-├── toodledo_client.py   # API client (works perfectly)
-├── token_manager.py     # OAuth2 handler (works perfectly)
-├── config.py            # Settings management
-├── authorize.py         # OAuth2 authorization flow
+├── toodledo_client.py   # API client (works perfectly - DO NOT CHANGE)
+├── token_manager.py     # OAuth2 handler (works perfectly - DO NOT CHANGE)
+├── config.py            # Settings management (DO NOT CHANGE)
+├── authorize.py         # OAuth2 authorization flow (DO NOT CHANGE)
 ├── test-tools.py        # API testing (all pass)
 ├── HANDOFF.md          # This file
 ├── AGENT_GUIDE.md      # Implementation details
 ├── SETUP.md            # Setup instructions
 └── PRD.md              # Product requirements
 ```
+
+**IMPORTANT:** Only `main.py` needs changes. All other files are working perfectly.
 
 ## Testing Checklist for Next Agent
 
@@ -177,21 +184,19 @@ TOODLEDO_REDIRECT_URI=http://localhost:8000/callback
 ## Useful Commands
 
 ```bash
-# Test API access
+# Test API access (verify everything works)
 cd /Users/hom/Sync/MasterFiles/external-repos/toodledo-mcp
 poetry run python test-tools.py
-
-# Get hot list (working workaround)
-poetry run python get_hot_list.py
 
 # Check server logs
 tail -f /tmp/toodledo_mcp.log
 
-# Run server manually
+# Run server manually (currently fails at initialize)
 poetry run python main.py
 
-# Check MCP package version
-poetry show mcp
+# Check MCP package versions
+poetry show mcp      # Should be 1.21.0 (native SDK)
+poetry show fastmcp  # Should be 0.3.5 (to be replaced)
 ```
 
 ## Next Steps for Agent
@@ -231,12 +236,20 @@ poetry show mcp
 ✅ Can invoke `get_tasks()` and receive Toodledo data
 ✅ All 9 tools accessible through Claude Code
 
-## Contact/Context
+## User Requirements
 
-- **User:** Manages 22 starred "next action" tasks across 21 folders
-- **Workflow:** Needs full Toodledo management, not just hot list
-- **Priority:** MCP integration for seamless Claude Code experience
-- **Fallback:** Direct Python API script works perfectly as interim solution
+**CRITICAL:** User needs FULL Toodledo management through Claude Code MCP interface.
+
+- **NOT ACCEPTABLE:** Scripts, workarounds, or partial solutions
+- **REQUIRED:** Complete MCP integration with all 9 tools accessible through Claude Code
+- **Goal:** Natural language task management ("show my tasks", "create a task for...", etc.)
+- **Current Status:** All 394 tasks across 21 folders available via API, just need MCP layer fixed
+
+**User manages:**
+- 394 total tasks
+- 21 folders (Business: H10, Tradeloop, OBADA, ISO; Properties: Skylark; Personal)
+- 22 "hot list" items (starred + next action status)
+- Complex workflow requiring full CRUD operations
 
 ---
 
