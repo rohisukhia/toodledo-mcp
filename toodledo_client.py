@@ -35,20 +35,25 @@ class ToodledoClient:
         data: Optional[Dict[str, Any]] = None,
     ) -> Any:
         """Make HTTP request to Toodledo API"""
+        import json
+
         url = f"{self.settings.toodledo_api_base_url}{endpoint}"
-
-        # Toodledo API requires access_token as query parameter
         access_token = self.token_manager.get_access_token()
-
-        if params is None:
-            params = {}
-        params["access_token"] = access_token
 
         try:
             if method.upper() == "GET":
+                # GET: access_token and params in URL query string
+                if params is None:
+                    params = {}
+                params["access_token"] = access_token
                 response = self.session.get(url, params=params, timeout=30)
             elif method.upper() == "POST":
-                response = self.session.post(url, params=params, json=data, timeout=30)
+                # POST: Everything in POST body (application/x-www-form-urlencoded)
+                post_data = {"access_token": access_token}
+                if data:
+                    for key, value in data.items():
+                        post_data[key] = json.dumps(value) if isinstance(value, (list, dict)) else value
+                response = self.session.post(url, data=post_data, timeout=30)
             else:
                 raise ValueError(f"Unsupported method: {method}")
 
@@ -67,6 +72,7 @@ class ToodledoClient:
         completed: Optional[int] = None,
         before: Optional[int] = None,
         after: Optional[int] = None,
+        star: Optional[int] = None,
         start: int = 0,
         num: int = 1000,
     ) -> Dict[str, Any]:
@@ -77,13 +83,19 @@ class ToodledoClient:
             completed: 0=incomplete, 1=completed, -1=all
             before: Get tasks modified before timestamp
             after: Get tasks modified after timestamp
+            star: 1=starred tasks only
             start: Start position (0-based)
             num: Maximum tasks to return (default 1000, max 1000)
 
         Returns:
             List of tasks
         """
-        params = {"start": start, "num": min(num, 1000)}
+        # Request all fields including star status
+        params = {
+            "start": start,
+            "num": min(num, 1000),
+            "fields": "folder,context,goal,location,tag,startdate,duedate,duedatemod,starttime,duetime,remind,repeat,status,star,priority,length,timer,added,note,parent,children,order,meta,previous,attachment,shared,addedby,via,attachments"
+        }
 
         if completed is not None:
             params["comp"] = completed
@@ -91,6 +103,8 @@ class ToodledoClient:
             params["before"] = before
         if after is not None:
             params["after"] = after
+        if star is not None:
+            params["star"] = star
 
         return self._make_request("GET", "/tasks/get.php", params=params)
 

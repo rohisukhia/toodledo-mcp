@@ -75,7 +75,7 @@ class TokenManager:
         data = {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
-            "scope": self.settings.scopes,
+            # NOTE: scope should NOT be in token requests, only in authorization URL
         }
 
         try:
@@ -119,8 +119,7 @@ class TokenManager:
         data = {
             "grant_type": "authorization_code",
             "code": code,
-            "scope": self.settings.scopes,
-            "redirect_uri": self.settings.toodledo_redirect_uri,
+            # NOTE: scope should NOT be in token exchange, only in authorization URL
         }
 
         try:
@@ -130,6 +129,10 @@ class TokenManager:
 
             if "error" in token_data:
                 raise ValueError(f"Authorization failed: {token_data.get('errorDesc')}")
+
+            # Log the granted scope
+            granted_scope = token_data.get("scope", "unknown")
+            logging.info(f"Token granted with scope: {granted_scope}")
 
             self.set_tokens(
                 token_data["access_token"],

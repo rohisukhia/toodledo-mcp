@@ -11,7 +11,7 @@ if len(sys.argv) < 2:
     print("Usage: python authorize.py <authorization_code>")
     print()
     print("To get an authorization code:")
-    print("1. Visit: https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer&scope=basic%20tasks")
+    print("1. Visit: https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer&scope=basic%20tasks%20write%20folders")
     print("2. Click 'Allow' to authorize")
     print("3. Copy the 'code' parameter from the redirect URL")
     print("4. Run: python authorize.py CODE_HERE")

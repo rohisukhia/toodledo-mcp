@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     mcp_port: int = 8000
     log_level: str = "INFO"
 
-    # Scopes for OAuth2
-    scopes: str = "basic tasks folders"
+    # Scopes for OAuth2 (write scope required for task creation)
+    scopes: str = "basic tasks write folders"
 
     class Config:
         env_file = ".env"
