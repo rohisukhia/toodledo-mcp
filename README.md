@@ -64,9 +64,11 @@ poetry run python main.py
 
 ### Claude Code
 ```bash
-# Add the MCP server
-claude mcp add toodledo "http://localhost:8000/mcp/"
+# Add the MCP server using stdio transport
+claude mcp add toodledo /path/to/toodledo-mcp/main.py
 ```
+
+**Note:** The server uses stdio transport (not HTTP). It reads JSON-RPC from stdin and writes to stdout for Claude communication.
 
 ### Claude Desktop
 Add to your MCP configuration:
@@ -106,6 +108,38 @@ The MCP server provides these tools for Claude:
 - `authorize_mcp(code)` - Handle OAuth2 authorization
 
 See [PRD.md](PRD.md) for tool specifications and parameters.
+
+## Troubleshooting
+
+### "Failed to reconnect to toodledo" or "Failed to refresh token: 400 Bad Request"
+
+**Problem:** The MCP server cannot connect to Toodledo. This usually happens when the OAuth2 refresh token has expired or become invalid.
+
+**Solution:** Re-authorize the application:
+
+```bash
+# 1. Delete the expired token
+rm ~/.config/toodledo/tokens.json
+
+# 2. Get a new authorization code
+# Visit this URL in your browser:
+https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer2&scope=basic%20tasks%20write
+
+# 3. Run authorize.py with the code you receive
+poetry run python authorize.py YOUR_CODE_HERE
+
+# 4. Test the connection
+poetry run python main.py
+```
+
+**Note:** Refresh tokens can expire after extended periods of inactivity. If you stop using the MCP for several weeks, you may need to re-authorize again.
+
+### Token Expiration Details
+
+- **Access tokens** expire after a few hours - the server automatically refreshes these using the refresh token
+- **Refresh tokens** expire after long periods of inactivity (typically 30+ days)
+- When the refresh token expires, you must re-authorize using the steps above
+- The server will not attempt re-authorization automatically - you'll see the "Failed to refresh token" error until you manually re-authorize
 
 ## Documentation
 
