@@ -4,6 +4,7 @@ Handles token storage, refresh, and validation
 """
 
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Optional
@@ -31,7 +32,6 @@ class TokenManager:
     def _save_tokens(self) -> None:
         """Save tokens to storage file"""
         self.token_path.parent.mkdir(parents=True, exist_ok=True)
-        self.token_path.chmod(0o600)  # Secure permissions
 
         with open(self.token_path, "w") as f:
             json.dump(self.tokens, f, indent=2)
