@@ -4,6 +4,7 @@ Handles token storage, refresh, and validation
 """
 
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Optional
@@ -31,7 +32,6 @@ class TokenManager:
     def _save_tokens(self) -> None:
         """Save tokens to storage file"""
         self.token_path.parent.mkdir(parents=True, exist_ok=True)
-        self.token_path.chmod(0o600)  # Secure permissions
 
         with open(self.token_path, "w") as f:
             json.dump(self.tokens, f, indent=2)
@@ -75,7 +75,7 @@ class TokenManager:
         data = {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
-            "scope": self.settings.scopes,
+            # NOTE: scope should NOT be in token requests, only in authorization URL
         }
 
         try:
@@ -104,6 +104,7 @@ class TokenManager:
         params = {
             "response_type": "code",
             "client_id": self.settings.toodledo_client_id,
+            "state": "mcp_auth_state",
             "scope": self.settings.scopes,
             "redirect_uri": self.settings.toodledo_redirect_uri,
         }
@@ -119,17 +120,26 @@ class TokenManager:
         data = {
             "grant_type": "authorization_code",
             "code": code,
-            "scope": self.settings.scopes,
             "redirect_uri": self.settings.toodledo_redirect_uri,
+            # NOTE: scope should NOT be in token exchange, only in authorization URL
         }
 
         try:
+            logging.info(f"Token exchange request - URL: {url}")
+            logging.info(f"Token exchange request - Auth: {auth[0]}:***")
+            logging.info(f"Token exchange request - Data: {data}")
             response = requests.post(url, auth=auth, data=data, timeout=10)
+            logging.info(f"Token exchange response - Status: {response.status_code}")
+            logging.info(f"Token exchange response - Body: {response.text}")
             response.raise_for_status()
             token_data = response.json()
 
             if "error" in token_data:
                 raise ValueError(f"Authorization failed: {token_data.get('errorDesc')}")
+
+            # Log the granted scope
+            granted_scope = token_data.get("scope", "unknown")
+            logging.info(f"Token granted with scope: {granted_scope}")
 
             self.set_tokens(
                 token_data["access_token"],

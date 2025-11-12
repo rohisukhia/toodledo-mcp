@@ -2,164 +2,208 @@
 
 A Model Context Protocol (MCP) server for integrating Toodledo task management with Claude AI.
 
-## Overview
-
-This MCP server enables Claude (via Claude Code and Claude Desktop) to interact with your Toodledo task management system. Starting with simple read-only access, the server can be expanded to support full CRUD operations and smart task management features.
-
 ## Features
 
-### Current (MVP)
 - OAuth2 authentication with Toodledo
 - Read tasks from your account
 - Filter tasks by completion status
 - Access folders, contexts, goals, locations
 - Get account information
 - Create individual tasks
-- Token refresh management
+- Automatic token refresh
 
-### Planned
-- Batch task creation (up to 50 tasks)
-- Edit and delete tasks
-- Natural language date parsing
-- Smart folder assignment
-- Duplicate detection
-- Markdown file parsing
-- Paper todo syncing
-
-## Quick Start
+## Installation
 
 ### Prerequisites
 - Python 3.11+
 - Toodledo account (free or Pro)
-- Toodledo OAuth2 app registered with Client ID and Secret
 - Poetry (for dependency management)
 
-### Installation & Setup
+### Setup Steps
 
-**See [SETUP.md](SETUP.md) for complete step-by-step instructions.**
-
-Quick version:
 ```bash
-# 1. Clone repository
+# 1. Clone and install
 git clone https://github.com/rohisukhia/toodledo-mcp.git
 cd toodledo-mcp
-
-# 2. Install dependencies
 poetry install
+
+# 2. Register OAuth2 app at Toodledo
+# Go to: https://www.toodledo.com/info/api_doc.php
+# Create app with redirect URI: http://localhost:8000/callback
 
 # 3. Configure credentials
 cp .env.example .env
-# Edit .env with your Toodledo OAuth2 Client ID and Secret
+# Edit .env with your Client ID and Secret
 
-# 4. Get authorization code
-# Visit: https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=YOUR_CLIENT_ID&state=test&scope=basic%20tasks
-
-# 5. Authorize
-poetry run python authorize.py YOUR_CODE_HERE
-
-# 6. Test
-poetry run python test-tools.py
-
-# 7. Use with Claude Code
-poetry run python main.py
+# 4. Authorize (get code from authorization URL)
+poetry run python authorize.py YOUR_AUTH_CODE
 ```
 
-## Usage with Claude
+### Get Authorization Code
 
-### Claude Code
+**✅ FIXED:** The `health_check` tool now returns a correct authorization URL with the required `state` parameter.
+
+Visit this URL in your browser (replace `YOUR_CLIENT_ID` with `toodledoMCPServer2` for MCP usage):
+```
+https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=YOUR_CLIENT_ID&state=mcp_auth_state&scope=basic%20tasks%20write%20folders
+```
+
+**Note:** The `state` parameter is required per Toodledo API spec - it prevents CSRF attacks.
+
+Click "Allow" and copy the code from the redirect URL.
+
+## Claude Code Integration
+
+**IMPORTANT:** Use the wrapper script, not `poetry run python main.py` directly!
+
 ```bash
-# Add the MCP server
-claude mcp add toodledo "http://localhost:8000/mcp/"
+# Add to Claude Code (user scope - available everywhere)
+claude mcp add toodledo "/full/path/to/toodledo-mcp/run-mcp-server.sh" -s user
 ```
 
-### Claude Desktop
-Add to your MCP configuration:
-```json
-{
-  "mcpServers": {
-    "toodledo": {
-      "command": "python",
-      "args": ["/path/to/toodledo-mcp/main.py"]
-    }
-  }
-}
+### Why the Wrapper Script?
+
+Poetry emits Python version warnings on stderr that **break the MCP protocol**. The wrapper script:
+- Bypasses Poetry by using virtualenv Python directly
+- Suppresses all warnings via environment variables
+- Uses absolute paths to work from any directory
+- Redirects stderr to /dev/null as final safety
+
+**Without the wrapper:** MCP connection will fail intermittently with "Failed to reconnect"
+
+**With the wrapper:** Clean JSON-RPC communication, reliable connections
+
+## Troubleshooting
+
+### "Failed to reconnect to toodledo"
+
+**Two possible causes:**
+
+#### 1. Expired OAuth Tokens (Most Common)
+
+Refresh tokens expire after ~30 days. Re-authorize:
+
+```bash
+# Delete expired token
+rm ~/.config/toodledo/tokens.json
+
+# Get new authorization code from URL above
+# Then authorize again
+poetry run python authorize.py YOUR_NEW_CODE
 ```
 
-## Example Commands
+#### 2. Poetry Warnings Breaking MCP Protocol
 
-Once configured, you can use natural language commands in Claude:
+**Symptoms:**
+- Works in some directories, fails in others
+- Works in one terminal session, fails in another
+- "Failed to reconnect" error despite valid tokens
 
-- "Show me my incomplete tasks"
-- "What tasks are due today?"
-- "List all my work tasks"
-- "Create a task to call the dentist tomorrow" (Phase 2)
-- "Mark task 12345 as complete" (Phase 2)
+**Cause:** Poetry's Python version warnings corrupt MCP stdio communication
+
+**Solution:** Ensure you're using `run-mcp-server.sh`:
+
+```bash
+# Check your MCP config
+cat ~/.claude.json | grep -A5 toodledo
+
+# Should show:
+# "command": "/full/path/to/toodledo-mcp/run-mcp-server.sh"
+
+# If not, update it:
+claude mcp remove toodledo -s user
+claude mcp add toodledo "/full/path/to/toodledo-mcp/run-mcp-server.sh" -s user
+```
+
+### Clean Installation Test
+
+To verify everything works from scratch:
+
+```bash
+# 1. Remove all configs
+claude mcp remove toodledo -s user
+rm ~/.config/toodledo/tokens.json
+
+# 2. Fresh authorization
+poetry run python authorize.py YOUR_CODE
+
+# 3. Add MCP with wrapper script
+claude mcp add toodledo "$(pwd)/run-mcp-server.sh" -s user
+
+# 4. Restart Claude Code
+# New session should connect successfully
+```
 
 ## Available Tools
 
-The MCP server provides these tools for Claude:
-
-- `get_tasks(status, limit)` - Retrieve tasks with optional filtering
+- `get_tasks(status, limit, starred_only)` - Retrieve tasks with filtering
 - `get_folders()` - List all task folders
 - `get_contexts()` - List contexts (@Work, @Home, etc.)
 - `get_goals()` - List goals
 - `get_locations()` - List locations
 - `get_account_info()` - Get account details
-- `create_task()` - Create new tasks
+- `create_task(title, folder, context, priority, duedate, note)` - Create tasks
 - `health_check()` - Check server status
 - `authorize_mcp(code)` - Handle OAuth2 authorization
 
-See [PRD.md](PRD.md) for tool specifications and parameters.
+## Example Usage in Claude
 
-## Documentation
+Once configured, use natural language:
 
-- **[SETUP.md](SETUP.md)** - Complete step-by-step setup instructions
-- **[PRD.md](PRD.md)** - Product Requirements Document with detailed specifications
-- **[SETUP.md - Troubleshooting](SETUP.md#troubleshooting)** - Common issues and solutions
-- [Toodledo API Reference](https://api.toodledo.com/3/index.php) - Official API documentation
+- "Show me my incomplete tasks"
+- "What tasks are due today?"
+- "List all my work tasks"
+- "Create a task to review the quarterly report"
 
-## Development Status
+## How MCP Connection Works
 
-**Current Phase:** MVP (OAuth2 + Read Operations)
+Each Claude Code session:
+1. Reads `~/.claude.json` at startup
+2. Spawns its own MCP server process
+3. Maintains a persistent connection
 
-### Implemented (Phase 1)
-✅ OAuth2 authentication and token management
-✅ Read tasks, folders, contexts, goals, locations
-✅ Create individual tasks
-✅ Account information retrieval
-✅ Comprehensive testing tools
-✅ Token refresh automation
+**Important:**
+- Config changes require Claude Code restart
+- Each session has independent connection
+- Wrapper script ensures clean stdio for reliable connections
 
-### Next (Phase 2)
-- Batch task operations (up to 50 tasks)
-- Edit and delete tasks
-- Task completion marking
-- Enhanced filtering
+## Common Pitfalls
 
-### Later (Phase 3)
-- Natural language date parsing
-- Smart folder/context assignment
-- Duplicate detection
-- Paper todo markdown parsing
+### ❌ DON'T: Use `poetry run python main.py` directly
+**Why:** Poetry warnings break MCP protocol
 
-See [PRD.md](PRD.md) for complete roadmap and implementation details.
+### ❌ DON'T: Use relative paths in MCP config
+**Why:** Fails when Claude Code starts from different directories
 
-## Contributing
+### ❌ DON'T: Forget to restart Claude Code after config changes
+**Why:** MCP connections only initialize at startup
 
-This project is in early development. Contributions and suggestions are welcome!
+### ✅ DO: Use the wrapper script with absolute path
+```bash
+claude mcp add toodledo "/full/path/to/run-mcp-server.sh" -s user
+```
+
+### ✅ DO: Restart Claude Code after any MCP config changes
+
+### ✅ DO: Check for stale project-specific configs
+```bash
+# Project configs override user configs
+# Check ~/.claude.json for project-specific mcpServers
+```
+
+## Technical Details
+
+- **Transport:** stdio (JSON-RPC over stdin/stdout)
+- **Protocol:** MCP 2024-11-05
+- **Authentication:** OAuth2 with automatic token refresh
+- **Token Storage:** `~/.config/toodledo/tokens.json` (600 permissions)
+- **Logs:** `/tmp/toodledo_mcp.log`
 
 ## License
 
 MIT License - See LICENSE file for details.
 
-## Support
-
-For issues or questions:
-- Create an issue in this repository
-- Check the [Toodledo API documentation](https://api.toodledo.com/3/index.php)
-- Review the [PRD.md](PRD.md) for implementation details
-
 ## Acknowledgments
 
-- Built using [FastMCP](https://github.com/jlowin/fastmcp) framework
+- Built using [MCP SDK](https://github.com/modelcontextprotocol/python-sdk)
 - Integrates with [Toodledo](https://www.toodledo.com) task management
