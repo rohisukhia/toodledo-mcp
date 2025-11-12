@@ -48,7 +48,7 @@ cp .env.example .env
 # Edit .env with your Toodledo OAuth2 Client ID and Secret
 
 # 4. Get authorization code
-# Visit: https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer&scope=basic%20tasks%20write%20folders
+# Visit: https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer&state=mcp_auth_2025&scope=basic%20tasks%20write
 
 # 5. Authorize
 poetry run python authorize.py YOUR_CODE_HERE
@@ -123,7 +123,7 @@ rm ~/.config/toodledo/tokens.json
 
 # 2. Get a new authorization code
 # Visit this URL in your browser:
-https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer&scope=basic%20tasks%20write%20folders
+https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer&state=mcp_auth_2025&scope=basic%20tasks%20write
 
 # 3. Run authorize.py with the code you receive
 poetry run python authorize.py YOUR_CODE_HERE
@@ -140,6 +140,20 @@ poetry run python main.py
 - **Refresh tokens** expire after long periods of inactivity (typically 30+ days)
 - When the refresh token expires, you must re-authorize using the steps above
 - The server will not attempt re-authorization automatically - you'll see the "Failed to refresh token" error until you manually re-authorize
+
+### Important OAuth2 Parameters
+
+According to the [official Toodledo API documentation](https://api.toodledo.com/3/account/index.php):
+
+- **`state` parameter is REQUIRED** - prevents CSRF attacks. Can be any string (e.g., `mcp_auth_2025`)
+- **Valid scopes only**: `basic`, `tasks`, `notes`, `outlines`, `lists`, `share`, `write`
+  - `basic tasks write` = minimum required for this MCP server
+  - `folders` is NOT a valid scope (removed in favor of tasks scope)
+- **URL encoding**: Multiple scopes must be space-separated and URL-encoded as `%20`
+
+**DO NOT use URLs with**:
+- ❌ `scope=basic%20tasks%20write%20folders` (folders is invalid)
+- ❌ URLs without the `state` parameter (REQUIRED)
 
 ## Documentation
 
