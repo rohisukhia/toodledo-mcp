@@ -35,10 +35,6 @@ This MCP server enables Claude (via Claude Code and Claude Desktop) to interact 
 - Poetry (for dependency management)
 
 ### Installation & Setup
-
-**See [SETUP.md](SETUP.md) for complete step-by-step instructions.**
-
-Quick version:
 ```bash
 # 1. Clone repository
 git clone https://github.com/rohisukhia/toodledo-mcp.git
@@ -113,9 +109,7 @@ See [PRD.md](PRD.md) for tool specifications and parameters.
 
 ## Documentation
 
-- **[SETUP.md](SETUP.md)** - Complete step-by-step setup instructions
 - **[PRD.md](PRD.md)** - Product Requirements Document with detailed specifications
-- **[SETUP.md - Troubleshooting](SETUP.md#troubleshooting)** - Common issues and solutions
 - [Toodledo API Reference](https://api.toodledo.com/3/index.php) - Official API documentation
 
 ## Development Status
