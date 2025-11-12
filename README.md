@@ -41,10 +41,14 @@ poetry run python authorize.py YOUR_AUTH_CODE
 
 ### Get Authorization Code
 
-Visit this URL in your browser (replace `YOUR_CLIENT_ID`):
+**✅ FIXED:** The `health_check` tool now returns a correct authorization URL with the required `state` parameter.
+
+Visit this URL in your browser (replace `YOUR_CLIENT_ID` with `toodledoMCPServer2` for MCP usage):
 ```
-https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=YOUR_CLIENT_ID&state=test&scope=basic%20tasks%20write
+https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=YOUR_CLIENT_ID&state=mcp_auth_state&scope=basic%20tasks%20write%20folders
 ```
+
+**Note:** The `state` parameter is required per Toodledo API spec - it prevents CSRF attacks.
 
 Click "Allow" and copy the code from the redirect URL.
 

@@ -104,6 +104,7 @@ class TokenManager:
         params = {
             "response_type": "code",
             "client_id": self.settings.toodledo_client_id,
+            "state": "mcp_auth_state",
             "scope": self.settings.scopes,
             "redirect_uri": self.settings.toodledo_redirect_uri,
         }
@@ -119,11 +120,17 @@ class TokenManager:
         data = {
             "grant_type": "authorization_code",
             "code": code,
+            "redirect_uri": self.settings.toodledo_redirect_uri,
             # NOTE: scope should NOT be in token exchange, only in authorization URL
         }
 
         try:
+            logging.info(f"Token exchange request - URL: {url}")
+            logging.info(f"Token exchange request - Auth: {auth[0]}:***")
+            logging.info(f"Token exchange request - Data: {data}")
             response = requests.post(url, auth=auth, data=data, timeout=10)
+            logging.info(f"Token exchange response - Status: {response.status_code}")
+            logging.info(f"Token exchange response - Body: {response.text}")
             response.raise_for_status()
             token_data = response.json()
 
