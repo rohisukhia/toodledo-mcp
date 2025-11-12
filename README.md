@@ -48,7 +48,7 @@ cp .env.example .env
 # Edit .env with your Toodledo OAuth2 Client ID and Secret
 
 # 4. Get authorization code
-# Visit: https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer2&state=test_state_12345&scope=basic%20tasks%20write
+# Visit: https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer&scope=basic%20tasks%20write%20folders
 
 # 5. Authorize
 poetry run python authorize.py YOUR_CODE_HERE
@@ -123,7 +123,7 @@ rm ~/.config/toodledo/tokens.json
 
 # 2. Get a new authorization code
 # Visit this URL in your browser:
-https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer2&scope=basic%20tasks%20write
+https://api.toodledo.com/3/account/authorize.php?response_type=code&client_id=toodledoMCPServer&scope=basic%20tasks%20write%20folders
 
 # 3. Run authorize.py with the code you receive
 poetry run python authorize.py YOUR_CODE_HERE
